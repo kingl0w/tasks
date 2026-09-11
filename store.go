@@ -49,10 +49,13 @@ type Store struct {
 }
 
 func Open(path string) (*Store, error) {
-	db, err := sql.Open("sqlite", path)
+	// busy_timeout: wait for a lock instead of failing when another tasks process is mid-write.
+	db, err := sql.Open("sqlite", path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 	if err != nil {
 		return nil, err
 	}
+	// One connection keeps ":memory:" a single database in tests.
+	db.SetMaxOpenConns(1)
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS tasks (
 		id       INTEGER PRIMARY KEY AUTOINCREMENT,
 		title    TEXT NOT NULL CHECK (title <> ''),
